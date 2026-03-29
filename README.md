@@ -255,6 +255,6 @@ MIT License — feel free to use, modify, and distribute.
 
 <div align="center">
 
-Divyansh Sen &copy 2026
+Divyansh Sen &copy; 2026
 
 </div>
