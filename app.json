@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Confessions",
+    "slug": "confessionapp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0D0D0D"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.confessionapp.app"
+    },
+    "android": {
+      "package": "com.confessionapp.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#0D0D0D",
+        "foregroundImage": "./assets/adaptive-icon.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "dcd8c726-5548-435b-ae17-e25267c30a1f"
+      }
+    }
+  }
+}
