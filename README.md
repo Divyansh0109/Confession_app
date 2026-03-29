@@ -255,6 +255,6 @@ MIT License — feel free to use, modify, and distribute.
 
 <div align="center">
 
-Built with 💜 using React Native & Firebase
+Divyansh Sen &copy 2026
 
 </div>
