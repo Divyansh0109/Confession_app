@@ -15,7 +15,7 @@
 
 ## 📱 About
 
-**Confessions** is an anonymous social app where users can post their deepest thoughts, react to others' confessions, and comment — all without revealing their real identity. The app features real-time Firebase Firestore sync, advanced content moderation, and a sleek dark-themed UI.
+**Confessions** is an anonymous social app where users can post their deepest thoughts, react to others' confessions, and comment — all without revealing their real identity. The app features real-time Firebase Firestore sync, advanced content moderation, a hidden admin system, and a sleek dark-themed UI.
 
 ---
 
@@ -44,6 +44,18 @@
 - **Auto-Moderation** — Posts with 5+ reports are automatically hidden from the feed
 - **Device Tracking** — Persistent device ID to track activity across sessions
 
+### 🔐 Hidden Admin System
+- **Secret 7-Tap Trigger** — Tap the app title "Confessions 🤫" **7 times within 2.5 seconds** to open the admin login — completely invisible to normal users
+- **PIN-Protected Login** — Admin login screen with PIN entry, shake animation on wrong attempts, and eye-toggle for visibility
+- **Admin Panel** — Full control dashboard featuring:
+  - 📊 Stats strip — Total posts / Flagged (3+ reports) / Auto-hidden (5+ reports)
+  - 🗑️ Delete any confession directly from Firestore with one tap
+  - 🚩 Report count badge on every post (turns red when ≥ 3 reports)
+  - Real-time live feed of **all** posts including auto-hidden ones
+  - Logout button that resets admin state instantly
+- **Inline Card Controls** — When logged in as admin, every confession card in the home feed shows a 🗑️ delete button and 🚩 report count — invisible to regular users
+- **Zero Footprint** — Admin screens are never linked from any tab, button, or menu; only reachable via the gesture
+
 ### 📤 Sharing
 - **Share as Image** — Convert any confession card into a branded image
 - **Native Sharing** — Share directly to WhatsApp, Instagram, and other apps
@@ -60,7 +72,7 @@
 
 ```
 confessionapp/
-├── App.js                        # Root component, navigation setup
+├── App.js                        # Root component, navigation + AdminProvider
 ├── app.json                      # Expo project config
 ├── eas.json                      # EAS Build config (APK/AAB)
 ├── metro.config.js               # Metro bundler config (Firebase fix)
@@ -69,7 +81,7 @@ confessionapp/
 │
 └── src/
     ├── components/
-    │   ├── ConfessionCard.js     # Individual post card with reactions
+    │   ├── ConfessionCard.js     # Post card — shows admin controls when isAdmin=true
     │   ├── ReactionBar.js        # Emoji reaction row
     │   ├── CommentItem.js        # Single comment row
     │   ├── TagChip.js            # Category tag badge
@@ -79,13 +91,16 @@ confessionapp/
     │   └── ProfileModal.js       # Custom identity picker
     │
     ├── screens/
-    │   ├── HomeScreen.js         # Main feed with filter tabs
+    │   ├── HomeScreen.js         # Main feed — contains 7-tap secret trigger
     │   ├── PostScreen.js         # New confession composer
     │   ├── CommentsScreen.js     # Comment thread view
-    │   └── TrendingScreen.js     # Top/Today trending posts
+    │   ├── TrendingScreen.js     # Top/Today trending posts
+    │   ├── AdminLoginScreen.js   # 🔐 Hidden PIN login (secret access only)
+    │   └── AdminPanelScreen.js   # 🛡️ Admin control panel
     │
     ├── context/
-    │   └── ConfessionsContext.js # Global state + Firestore integration
+    │   ├── ConfessionsContext.js # Global state + Firestore integration
+    │   └── AdminContext.js       # Admin auth state (isAdmin, login, logout)
     │
     ├── config/
     │   └── firebaseConfig.js     # Firebase app initialization
@@ -168,6 +183,9 @@ const firebaseConfig = {
 ### 4. Run the app
 ```bash
 # Development (WiFi — phone and PC must be on same network)
+npx expo start
+
+# Development (clear cache)
 npx expo start -c
 
 # Development (Tunnel — works on any network)
@@ -175,6 +193,40 @@ npx expo start -c --tunnel
 ```
 
 Scan the QR code with **Expo Go** on Android, or Camera app on iOS.
+
+---
+
+## 🔐 Admin Access
+
+> ⚠️ Keep this section private. Do not share the trigger or PIN publicly.
+
+### Trigger
+Tap the **"Confessions 🤫"** title on the Home screen **7 times within 2.5 seconds**.  
+The Admin Login screen will open as a modal — invisible to any normal user.
+
+### Default PIN
+```
+1234
+```
+Change it in `src/screens/AdminLoginScreen.js`:
+```js
+const ADMIN_PIN = '1234'; // ← change this
+```
+
+### Admin Panel Capabilities
+| Feature | Description |
+|---|---|
+| 📊 Stats Strip | Total posts, flagged (≥3 reports), auto-hidden (≥5 reports) |
+| 🗑️ Delete Posts | Permanently removes confession from Firestore |
+| 🚩 Report Counts | Red badge on posts with 3+ reports |
+| 👁️ Full Feed | Sees ALL posts including auto-hidden ones |
+| 🔓 Logout | Immediately resets admin state; returns to Home |
+
+### Security Notes
+- Admin state is **in-memory only** — resets on every app restart
+- Swipe-to-dismiss is **disabled** on the login modal
+- Wrong PIN shows a generic `"Something went wrong"` error with a shake animation — revealing no information about what's wrong
+- No tab, button, or label in the UI points to the admin screens
 
 ---
 

@@ -1,14 +1,17 @@
 import React, { useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, Animated, TouchableOpacity,
+  View, Text, StyleSheet, Pressable, Animated, TouchableOpacity, Alert, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { doc, deleteDoc } from 'firebase/firestore';
 import { COLORS } from '../constants/theme';
 import { timeAgo } from '../utils/timeAgo';
 import TagChip from './TagChip';
 import ReactionBar from './ReactionBar';
 import { useConfessions } from '../context/ConfessionsContext';
+import { useAdmin } from '../context/AdminContext';
+import { db } from '../config/firebaseConfig';
 
 const AVATAR_GRADIENTS = [
   ['#7C3AED', '#A855F7'],
@@ -33,8 +36,10 @@ const getInitials = (name) => {
 
 const ConfessionCard = ({ confession, onPress, onComment, onShare, onReport }) => {
   const { reactToConfession } = useConfessions();
+  const { isAdmin } = useAdmin();
   const [reactions, setReactions] = useState({ ...confession.reactions });
   const [activeReaction, setActiveReaction] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const pressAnim = useRef(new Animated.Value(1)).current;
 
   // Sync with Firebase real-time updates
@@ -58,19 +63,46 @@ const ConfessionCard = ({ confession, onPress, onComment, onShare, onReport }) =
       const updated = { ...prev };
       if (isActive) {
         updated[key] = Math.max(0, updated[key] - 1);
-        reactToConfession(confession.id, key, true); // remove reaction
+        reactToConfession(confession.id, key, true);
       } else {
         if (activeReaction) {
           updated[activeReaction] = Math.max(0, updated[activeReaction] - 1);
-          reactToConfession(confession.id, activeReaction, true); // remove old
+          reactToConfession(confession.id, activeReaction, true);
         }
         updated[key] = (updated[key] || 0) + 1;
-        reactToConfession(confession.id, key, false); // add new
+        reactToConfession(confession.id, key, false);
       }
       return updated;
     });
     setActiveReaction(isActive ? null : key);
   };
+
+  // ── Admin-only: delete this confession from Firestore ──
+  const handleAdminDelete = () => {
+    Alert.alert(
+      'Delete Confession',
+      `"${confession.text.slice(0, 60)}${confession.text.length > 60 ? '…' : ''}"`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setDeleting(true);
+              await deleteDoc(doc(db, 'confessions', confession.id));
+            } catch (e) {
+              Alert.alert('Error', 'Could not delete this post.');
+              console.warn(e);
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+  // ────────────────────────────────────────────────
 
   const gradient = getGradient(confession.authorName);
 
@@ -115,6 +147,36 @@ const ConfessionCard = ({ confession, onPress, onComment, onShare, onReport }) =
             <Ionicons name="share-social-outline" size={14} color="#4B5563" />
             <Text style={styles.actionText}>Share</Text>
           </TouchableOpacity>
+
+          {/* ── ADMIN-ONLY controls ── */}
+          {isAdmin && (
+            <>
+              {/* Report count badge */}
+              <View style={styles.adminReportBadge}>
+                <Ionicons name="flag" size={11} color={(confession.reportCount || 0) >= 3 ? '#EF4444' : '#6B7280'} />
+                <Text style={[
+                  styles.adminReportText,
+                  (confession.reportCount || 0) >= 3 && { color: '#EF4444' }
+                ]}>
+                  {confession.reportCount || 0}
+                </Text>
+              </View>
+
+              {/* Delete button */}
+              <TouchableOpacity
+                style={styles.adminDeleteBtn}
+                onPress={handleAdminDelete}
+                disabled={deleting}
+                activeOpacity={0.75}
+              >
+                {deleting ? (
+                  <ActivityIndicator size="small" color="#EF4444" />
+                ) : (
+                  <Ionicons name="trash-outline" size={13} color="#EF4444" />
+                )}
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </Animated.View>
     </Pressable>
@@ -198,6 +260,34 @@ const styles = StyleSheet.create({
     color: '#4B5563',
     fontSize: 13,
     fontWeight: '500',
+  },
+  // ── Admin-only styles ───────────────────────
+  adminReportBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    marginLeft: 'auto',
+  },
+  adminReportText: {
+    color: '#6B7280',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  adminDeleteBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(239,68,68,0.10)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.25)',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
   },
 });
 

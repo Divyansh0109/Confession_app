@@ -11,8 +11,11 @@ import HomeScreen from './src/screens/HomeScreen';
 import TrendingScreen from './src/screens/TrendingScreen';
 import PostScreen from './src/screens/PostScreen';
 import CommentsScreen from './src/screens/CommentsScreen';
+import AdminLoginScreen from './src/screens/AdminLoginScreen';
+import AdminPanelScreen from './src/screens/AdminPanelScreen';
 import { COLORS } from './src/constants/theme';
 import { ConfessionsProvider } from './src/context/ConfessionsContext';
+import { AdminProvider } from './src/context/AdminContext';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -70,29 +73,48 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <ConfessionsProvider>
-          <NavigationContainer theme={MyTheme}>
-            <Stack.Navigator
-              screenOptions={{
-                headerShown: false,
-                cardStyle: { backgroundColor: COLORS.background },
-                gestureEnabled: true,
-              }}
-            >
-              <Stack.Screen name="Main" component={HomeTabs} />
-              <Stack.Screen
-                name="Comments"
-                component={CommentsScreen}
-                options={{ presentation: 'card', animationEnabled: true }}
-              />
-              <Stack.Screen
-                name="Post"
-                component={PostScreen}
-                options={{ presentation: 'modal', animationEnabled: true }}
-              />
-            </Stack.Navigator>
-          </NavigationContainer>
-        </ConfessionsProvider>
+        <AdminProvider>
+          <ConfessionsProvider>
+            <NavigationContainer theme={MyTheme}>
+              <Stack.Navigator
+                screenOptions={{
+                  headerShown: false,
+                  cardStyle: { backgroundColor: COLORS.background },
+                  gestureEnabled: true,
+                }}
+              >
+                {/* ── Normal screens ── */}
+                <Stack.Screen name="Main" component={HomeTabs} />
+                <Stack.Screen
+                  name="Comments"
+                  component={CommentsScreen}
+                  options={{ presentation: 'card', animationEnabled: true }}
+                />
+                <Stack.Screen
+                  name="Post"
+                  component={PostScreen}
+                  options={{ presentation: 'modal', animationEnabled: true }}
+                />
+
+                {/* ── Hidden admin screens ── */}
+                <Stack.Screen
+                  name="AdminLogin"
+                  component={AdminLoginScreen}
+                  options={{
+                    presentation: 'modal',
+                    animationEnabled: true,
+                    gestureEnabled: false, // prevent swipe-dismiss before PIN
+                  }}
+                />
+                <Stack.Screen
+                  name="AdminPanel"
+                  component={AdminPanelScreen}
+                  options={{ presentation: 'card', animationEnabled: true }}
+                />
+              </Stack.Navigator>
+            </NavigationContainer>
+          </ConfessionsProvider>
+        </AdminProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

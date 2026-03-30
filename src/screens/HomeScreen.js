@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, FlatList, StyleSheet, Text, ScrollView,
-  TouchableOpacity, RefreshControl, StatusBar, ActivityIndicator
+  TouchableOpacity, RefreshControl, StatusBar, ActivityIndicator, Animated
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +22,11 @@ const AUTO_HIDE_THRESHOLD = 5;
 const ALL_TAGS = ['All', ...TAGS];
 const BATCH_SIZE = 10;
 
+// ─── Secret tap constants ────────────────────────────
+const SECRET_TAP_COUNT  = 7;    // taps required
+const SECRET_TAP_WINDOW = 2500; // ms window to complete taps
+// ─────────────────────────────────────────────────────
+
 const HomeScreen = ({ navigation }) => {
   const { confessions, loading: isFetchingDB } = useConfessions();
   const [displayedCount, setDisplayedCount] = useState(BATCH_SIZE);
@@ -29,12 +34,46 @@ const HomeScreen = ({ navigation }) => {
   const [selectedTag, setSelectedTag]       = useState('All');
   const [loading, setLoading]               = useState(false);
   const [anonName, setAnonName]             = useState('');
-  const [hiddenPostIds, setHiddenPostIds]   = useState(new Set()); // auto-hidden
+  const [hiddenPostIds, setHiddenPostIds]   = useState(new Set());
 
   // modal states
   const [reportModal, setReportModal]   = useState({ visible: false, postId: null });
   const [shareModal, setShareModal]     = useState({ visible: false, confession: null });
   const [profileModal, setProfileModal] = useState(false);
+
+  // ── Secret 7-tap state ──────────────────────────────
+  const tapCount  = useRef(0);
+  const tapTimer  = useRef(null);
+  const titleOpacity = useRef(new Animated.Value(1)).current;
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => { if (tapTimer.current) clearTimeout(tapTimer.current); };
+  }, []);
+
+  const handleSecretTap = () => {
+    // Very subtle flash — no obvious visual cue
+    Animated.sequence([
+      Animated.timing(titleOpacity, { toValue: 0.55, duration: 60, useNativeDriver: true }),
+      Animated.timing(titleOpacity, { toValue: 1,    duration: 80, useNativeDriver: true }),
+    ]).start();
+
+    tapCount.current += 1;
+
+    // Clear the previous reset timer and start a fresh one
+    if (tapTimer.current) clearTimeout(tapTimer.current);
+    tapTimer.current = setTimeout(() => {
+      tapCount.current = 0; // too slow — reset
+    }, SECRET_TAP_WINDOW);
+
+    if (tapCount.current >= SECRET_TAP_COUNT) {
+      // Triggered! Reset everything and navigate
+      tapCount.current = 0;
+      clearTimeout(tapTimer.current);
+      navigation.navigate('AdminLogin');
+    }
+  };
+  // ───────────────────────────────────────────────────
 
   // load saved custom name + existing report counts on mount
   useEffect(() => {
@@ -90,10 +129,17 @@ const HomeScreen = ({ navigation }) => {
         style={styles.headerGradient}
       >
         <View style={styles.appHeader}>
-          <View>
-            <Text style={styles.appTitle}>Confessions 🤫</Text>
-            <Text style={styles.appSubtitle}>Anonymous · Safe · Real</Text>
-          </View>
+          {/* 7-tap secret trigger — no visible hint to users */}
+          <TouchableOpacity
+            onPress={handleSecretTap}
+            activeOpacity={1}       // no color change on press
+            hitSlop={{ top: 8, bottom: 8, left: 0, right: 20 }}
+          >
+            <Animated.View style={{ opacity: titleOpacity }}>
+              <Text style={styles.appTitle}>Confessions 🤫</Text>
+              <Text style={styles.appSubtitle}>Anonymous · Safe · Real</Text>
+            </Animated.View>
+          </TouchableOpacity>
           {/* Profile / identity button */}
           <TouchableOpacity
             style={styles.profileBtn}
